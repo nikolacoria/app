@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generador de Menús</title>
+    <style>
+        /* Estilos CSS */
+        label {
+            display: block;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+        }
+        select {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generador de Menús Semanales</h1>
+    <form>
+        <label for="ingredientes">Ingredientes Principales:</label>
+        <input type="text" id="ingredientes" name="ingredientes" placeholder="Ingrese los ingredientes principales separados por comas...">
+        <label for="comensales">Número de Comensales:</label>
+        <input type="text" id="comensales" name="comensales" placeholder="Ingrese el número de comensales...">
+        <label for="restricciones">Restricciones Alimentarias:</label>
+        <select id="restricciones" name="restricciones">
+            <option value="">Ninguna</option>
+            <option value="lactosa">Lactosa</option>
+            <option value="gluten">Gluten</option>
+            <option value="frutos-secos">Frutos Secos</option>
+        </select>
+        <button type="button" onclick="generarMenu()">Generar Menú</button>
+    </form>
+    <div id="respuesta">
+        <h2>Menú Semanal:</h2>
+        <p id="menu"></p>
+        <h2>Lista de Compras:</h2>
+        <ul id="compras"></ul>
+    </div>
+    <script src="https://cdn.openai.com/sdk/js/0.10.3/openai.js"></script>
+    <script>
+        /* Código JavaScript */
+        openai.api_key = os.getenv("OPENAI_API_KEY");
+
+        function generarMenu() {
+            // Se obtienen los valores ingresados por el usuario
+            var ingredientes = document.getElementById("ingredientes").value;
+            var comensales = document.getElementById("comensales").value;
+            var restricciones = document.getElementById("restricciones").value;
+
+            // Se define la entrada para el modelo de Chat GPT
+            var entrada = "Generar un menú semanal con " + ingredientes + " para " + comensales + " personas, sin incluir " + restricciones + ".";
+
+            // Se utiliza el modelo de Chat GPT para generar una respuesta
+            open
+            ai.Completion.create({
+            engine: "davinci",
+            prompt: entrada,
+            max_tokens: 1024,
+            n: 1,
+            stop: "\n",
+            temperature: 0.5
+        }).then(function(result) {
+            // Se obtiene la respuesta generada por el modelo
+            var respuesta = result.choices[0].text.trim();
+
+            // Se procesa la respuesta para obtener el menú semanal y la lista de compras
+            var menu = "";
+            var compras = {};
+            var dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+            respuesta.split("\n").forEach(function(linea) {
+                if (linea.startsWith("-")) {
+                    // Se agrega un plato al menú semanal
+                    var plato = linea.substr(2).trim();
+                    menu += "- " + plato + "\n";
+
+                    // Se obtienen los ingredientes necesarios para el plato
+                    openai.api_key = os.getenv("OPENAI_API_KEY")
+;
+                    var entrada_ing = "Obtener la lista de ingredientes para preparar " + plato + ".";
+                    openai.Completion.create({
+                        engine: "davinci",
+                        prompt: entrada_ing,
+                        max_tokens: 1024,
+                        n: 1,
+                        stop: "\n",
+                        temperature: 0.5
+                    }).then(function(result_ing) {
+                        var respuesta_ing = result_ing.choices[0].text.trim();
+
+                        // Se procesa la respuesta para obtener la lista de ingredientes y sus cantidades
+                        respuesta_ing.split("\n").forEach(function(ingrediente) {
+                            var cantidad = "1";
+                            var nombre = ingrediente.trim();
+                            var partes = nombre.split(" ");
+                            if (partes.length > 1) {
+                                cantidad = partes[0];
+                                nombre = partes.slice(1).join(" ");
+                            }
+                            if (nombre in compras) {
+                                compras[nombre] += parseFloat(cantidad) * parseInt(comensales);
+                            } else {
+                                compras[nombre] = parseFloat(cantidad) * parseInt(comensales);
+                            }
+                        });
+
+                        // Se actualiza la lista de compras en la pantalla
+                        var compras_html = "";
+                        Object.keys(compras).forEach(function(nombre) {
+                            compras_html += "<li>" + nombre + " - " + compras[nombre] + "</li>";
+                        });
+                        document.getElementById("compras").innerHTML = compras_html;
+                    }).catch(function(error_ing) {
+                        console.log(error_ing);
+                    });
+                } else if (dias.includes(linea)) {
+                    // Se agrega el día correspondiente al menú semanal
+                    menu += "\n" + linea + ":\n";
+                }
+            });
+
+            // Se actualiza el menú semanal en la pantalla
+            document.getElementById("menu").innerHTML = menu;
+        }).catch(function(error) {
+            console.log(error);
+        });
+    }
+</script>
+</body>
+</html>
